@@ -9,6 +9,7 @@ import com.Nightjar.Th3GradeLibraryKMP.data.BookItem
 import com.Nightjar.Th3GradeLibraryKMP.data.BookStorageEngine
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.io.FileOutputStream
@@ -16,7 +17,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 
-object BookDownloadManager {
+actual object BookDownloadManager {
     private const val CHANNEL_ID = "book_downloads_channel"
     private const val NOTIFICATION_ID = 4040
 
@@ -24,16 +25,16 @@ object BookDownloadManager {
     private val activeJobs = ConcurrentHashMap<String, Job>()
 
     private val _itemStates = MutableStateFlow<Map<String, ItemDownloadState>>(emptyMap())
-    val itemStates = _itemStates.asStateFlow()
+    actual val itemStates: StateFlow<Map<String, ItemDownloadState>> = _itemStates.asStateFlow()
 
     private val _isBatchDownloading = MutableStateFlow(false)
-    val isBatchDownloading = _isBatchDownloading.asStateFlow()
+    actual val isBatchDownloading: StateFlow<Boolean> = _isBatchDownloading.asStateFlow()
 
     private val _batchProgress = MutableStateFlow(0f)
-    val batchProgress = _batchProgress.asStateFlow()
+    actual val batchProgress: StateFlow<Float> = _batchProgress.asStateFlow()
 
     private val _activeNoticeMessage = MutableStateFlow<String?>(null)
-    val activeNoticeMessage = _activeNoticeMessage.asStateFlow()
+    actual val activeNoticeMessage: StateFlow<String?> = _activeNoticeMessage.asStateFlow()
 
     private fun ensureNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -67,19 +68,13 @@ object BookDownloadManager {
         } catch (_: Exception) {}
     }
 
-    fun dismissNotification(context: Context) {
-        try {
-            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.cancel(NOTIFICATION_ID)
-        } catch (_: Exception) {}
-    }
-
-    fun getItemState(itemId: String): ItemDownloadState {
+    actual fun getItemState(itemId: String): ItemDownloadState {
         return _itemStates.value[itemId] ?: ItemDownloadState(status = DownloadStatus.IDLE)
     }
 
-    fun downloadItem(context: Context, item: BookItem) {
-        if (BookStorageEngine.isDownloaded(context, item)) {
+    actual fun downloadItem(context: Any, item: BookItem) {
+        val ctx = context as Context
+        if (BookStorageEngine.isDownloaded(ctx, item)) {
             updateState(item.id, ItemDownloadState(status = DownloadStatus.COMPLETED, progress = 1f))
             return
         }
@@ -91,9 +86,9 @@ object BookDownloadManager {
                 updateState(item.id, ItemDownloadState(status = DownloadStatus.DOWNLOADING, progress = 0f))
                 _activeNoticeMessage.value = "جاري التحميل من سحابة الكتب والملازم يرجى الانتظار قليلاً لأول مرة فقط ويكون كل شيء أوفلاين..."
 
-                val storageDir = BookStorageEngine.getStorageDir(context)
+                val storageDir = BookStorageEngine.getStorageDir(ctx)
                 val tempTarget = File(storageDir, "temp_${item.id}_${System.currentTimeMillis()}.tmp")
-                val permanentFile = BookStorageEngine.getPermanentFile(context, item)
+                val permanentFile = BookStorageEngine.getPermanentFile(ctx, item)
 
                 val streamUrl = CloudCatalogManager.getStreamUrl(item)
                 if (streamUrl.isBlank() || !streamUrl.startsWith("http")) {
@@ -101,7 +96,7 @@ object BookDownloadManager {
                 }
 
                 updateNotification(
-                    context,
+                    ctx,
                     title = "جاري تحميل: ${item.title}",
                     text = "جاري التحميل من سحابة الكتب والملازم يرجى الانتظار قليلاً...",
                     progress = 0
@@ -141,7 +136,7 @@ object BookDownloadManager {
                                         totalBytes = totalBytes
                                     ))
                                     updateNotification(
-                                        context,
+                                        ctx,
                                         title = "جاري تحميل: ${item.title} (${(progress * 100).toInt()}%)",
                                         text = "جاري التحميل من سحابة الكتب والملازم...",
                                         progress = (progress * 100).toInt()
@@ -155,7 +150,7 @@ object BookDownloadManager {
                         tempTarget.renameTo(permanentFile)
                         updateState(item.id, ItemDownloadState(status = DownloadStatus.COMPLETED, progress = 1f))
                         updateNotification(
-                            context,
+                            ctx,
                             title = "اكتمل تحميل: ${item.title}",
                             text = "أصبح الكتاب متاحاً الآن أوفلاين بدون إنترنت",
                             progress = 100
@@ -181,37 +176,38 @@ object BookDownloadManager {
         activeJobs[item.id] = job
     }
 
-    fun pauseDownload(item: BookItem) {
+    actual fun pauseDownload(item: BookItem) {
         activeJobs[item.id]?.cancel()
         updateState(item.id, ItemDownloadState(status = DownloadStatus.PAUSED))
     }
 
-    fun cancelDownload(item: BookItem) {
+    actual fun cancelDownload(item: BookItem) {
         activeJobs[item.id]?.cancel()
         updateState(item.id, ItemDownloadState(status = DownloadStatus.IDLE, progress = 0f))
     }
 
-    fun downloadAll(context: Context, items: List<BookItem>) {
+    actual fun downloadAll(context: Any, items: List<BookItem>) {
+        val ctx = context as Context
         if (_isBatchDownloading.value) return
         _isBatchDownloading.value = true
         _activeNoticeMessage.value = "جاري تحميل الملفات لأول مرة وبعدها ستكون الملفات أوفلاين بدون أي إنترنت"
 
         scope.launch {
             try {
-                val undownloaded = items.filter { !BookStorageEngine.isDownloaded(context, it) }
+                val undownloaded = items.filter { !BookStorageEngine.isDownloaded(ctx, it) }
                 val totalCount = undownloaded.size
                 var completedCount = 0
 
                 for (item in undownloaded) {
                     if (!_isBatchDownloading.value) break
-                    downloadItem(context, item)
+                    downloadItem(ctx, item)
                     activeJobs[item.id]?.join()
                     completedCount++
                     _batchProgress.value = (completedCount.toFloat() / totalCount.toFloat()).coerceIn(0f, 1f)
                 }
 
                 updateNotification(
-                    context,
+                    ctx,
                     title = "اكتملت جميع التحميلات",
                     text = "جميع الكتب والملازم الآن جاهزة أوفلاين بدون أي إنترنت!",
                     progress = 100
@@ -223,7 +219,7 @@ object BookDownloadManager {
         }
     }
 
-    fun cancelAll() {
+    actual fun cancelAll() {
         _isBatchDownloading.value = false
         activeJobs.values.forEach { it.cancel() }
         activeJobs.clear()

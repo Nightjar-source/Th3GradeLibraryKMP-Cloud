@@ -686,7 +686,7 @@ fun LazyGridItemScope.ContentCard(
 val platformContext = coil3.compose.LocalPlatformContext.current
     val downloadStates by com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.itemStates.collectAsState()
     val itemState = downloadStates[item.id] ?: com.Nightjar.Th3GradeLibraryKMP.network.ItemDownloadState()
-    val isDownloaded = remember(item, downloadStates) {
+    val isBookDownloaded: Boolean = remember(item, downloadStates) {
         com.Nightjar.Th3GradeLibraryKMP.data.BookStorageEngine.isDownloaded(platformContext, item)
     }
 
@@ -704,7 +704,7 @@ val platformContext = coil3.compose.LocalPlatformContext.current
             .liquidGlass(isDark, borderRadius = cardCornerRadius, alpha = 0.5f)
             .clip(RoundedCornerShape(cardCornerRadius))
             .clickable {
-                if (isDownloaded) {
+                if (isBookDownloaded) {
                     TransitionTargetTracker.activeTargetId = "card_${item.id}"
                     TransitionTargetTracker.isTransitionActive = true
                     onClick()
@@ -743,7 +743,7 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                         )
 
                         // M3 Expressive Download Badge / Circular Progress
-                        if (!isDownloaded) {
+                        if (!isBookDownloaded) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -848,7 +848,7 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        if (!isDownloaded) {
+                        if (!isBookDownloaded) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()

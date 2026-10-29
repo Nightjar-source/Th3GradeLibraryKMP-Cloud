@@ -711,7 +711,7 @@ fun AppContent(
                                 modifier = Modifier
                                     .weight(1f, fill = false)
                                     .height(topBarHeight)
-                                    .liquidGlass(isDark, borderRadius = CircleShape, alpha = 0.95f)
+                                    .liquidGlass(isDark, borderRadius = 28.dp, alpha = 0.95f)
                                     .padding(horizontal = 8.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -803,7 +803,7 @@ fun AppContent(
                             Row(
                                 modifier = Modifier
                                     .height(topBarHeight)
-                                    .liquidGlass(isDark, borderRadius = CircleShape, alpha = 0.95f)
+                                    .liquidGlass(isDark, borderRadius = 28.dp, alpha = 0.95f)
                                     .padding(horizontal = 6.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -1273,7 +1273,7 @@ fun AppContent(
                                 brush = Brush.linearGradient(listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))),
                                 shape = CircleShape
                             )
-                            .liquidGlass(isDark, borderRadius = CircleShape, alpha = 0.90f)
+                            .liquidGlass(isDark, borderRadius = 26.dp, alpha = 0.90f)
                             .clip(CircleShape)
                             .bounceClick {
                                 isDrawerOpen = !isDrawerOpen
