@@ -42,11 +42,29 @@ data class AppSettings(
 
 object AllItems {
     fun getItemById(id: String): BookItem? {
-        return (books + notes).firstOrNull { it.id == id }
+        val dynamicList = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.dynamicBooks.value + com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.dynamicNotes.value
+        return dynamicList.firstOrNull { it.id == id } ?: (books + notes).firstOrNull { it.id == id }
     }
 
+    val dynamicBooks: List<BookItem>
+        get() {
+            val list = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.dynamicBooks.value
+            return if (list.isNotEmpty()) list else staticBooks
+        }
 
-    val books = listOf(
+    val dynamicNotes: List<BookItem>
+        get() {
+            val list = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.dynamicNotes.value
+            return if (list.isNotEmpty()) list else staticNotes
+        }
+
+    val books: List<BookItem>
+        get() = dynamicBooks
+
+    val notes: List<BookItem>
+        get() = dynamicNotes
+
+    val staticBooks = listOf(
         BookItem("b1", "كتاب الاجتماعيات", "ajh", "files/books/ajtmaa.pdf", false, "المنهج الوزاري المعتمد 2027", "#f59e0b", "#d97706"),
         BookItem("b2", "كتاب الاحياء", "ahya", "files/books/ahya.pdf", false, "المنهج الوزاري المعتمد 2027", "#10b981", "#059669"),
         BookItem("b3", "كتاب الانكليزي (النشاط)", "englishactivity", "files/books/englishactivity.pdf", false, "المنهج الوزاري المعتمد 2027", "#3b82f6", "#1d4ed8"),
@@ -59,7 +77,7 @@ object AllItems {
         BookItem("b10", "كتاب اللغة العربية2", "arabi2", "files/books/2arab.pdf", false, "المنهج الوزاري المعتمد 2027", "#ec4899", "#be185d")
     )
 
-    val notes = listOf(
+    val staticNotes = listOf(
         BookItem("n1", "املاء الانكليزي", "aaaaaaaaen", "files/notes/enalaaaa.pdf", true, "مدرس المادة", "#6366f1", "#3b82f6"),
         BookItem("n2", "ملزمة اجتماعيات - عباس العامري", "aj", "files/notes/ajtma.pdf", true, "أ. عباس العامري", "#f59e0b", "#d97706"),
         BookItem("n3", "ملزمة أحياء قديمة - احمد الجاف", "ahyaaa", "files/notes/ah.pdf", true, "أ. احمد الجاف", "#10b981", "#059669"),

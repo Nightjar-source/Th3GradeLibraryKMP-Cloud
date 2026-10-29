@@ -364,6 +364,11 @@ object SyncEngine {
 
         _syncing.value = true
         _lastFetchedCount.value = -1 // Reset fetch result state before starting
+
+        // Refresh dynamic cloud catalog metadata asynchronously from GitHub/CDN
+        try {
+            CloudCatalogManager.refreshManifest()
+        } catch (_: Exception) {}
         try {
             val rssParser = RssParser()
             val originalUrl = "https://feeds.feedburner.com/karraraliraqii/gkhbdxas1m0"

@@ -112,6 +112,8 @@ actual fun PdfViewerScreen(
     var tempFile by remember(item) { mutableStateOf<File?>(null) }
     var pdfRenderer by remember { mutableStateOf<PdfRenderer?>(null) }
     var loadingError by remember(item) { mutableStateOf<String?>(null) }
+    var downloadProgress by remember(item) { mutableStateOf(0f) }
+    var isDownloading by remember(item) { mutableStateOf(false) }
     var orientation by remember(appSettings.pdfScrollDirection) { mutableStateOf(appSettings.pdfScrollDirection) }
     var isZoomed by remember(item) { mutableStateOf(false) }
 
@@ -193,35 +195,90 @@ actual fun PdfViewerScreen(
             if (!file.exists() || file.length() == 0L) {
                 withContext(Dispatchers.IO) {
                     val tempTarget = File(context.cacheDir, "pdf_${item.id}_${System.currentTimeMillis()}.tmp")
+                    var streamSuccess = false
+
+                    // Tier 1: Try bundled assets (for backward compatibility if asset exists)
                     val assetManager = context.assets
                     val possiblePaths = listOf(
                         "composeResources/com.Nightjar.Th3GradeLibraryKMP.generated.resources/${item.pdfPath}",
                         "composeResources/shared.generated.resources/${item.pdfPath}",
-                        "composeResources/com.Nightjar.Th3GradeLibraryKMP.generated.resources/${item.pdfPath}",
                         item.pdfPath
                     )
                     
-                    var inputStream: java.io.InputStream? = null
                     for (path in possiblePaths) {
                         try {
-                            inputStream = assetManager.open(path)
-                            if (inputStream != null) break
-                        } catch (e: Exception) { }
-                    }
-
-                    if (inputStream != null) {
-                        inputStream.use { input ->
-                            java.io.FileOutputStream(tempTarget).use { output ->
-                                input.copyTo(output, 32 * 1024)
+                            assetManager.open(path).use { input ->
+                                java.io.FileOutputStream(tempTarget).use { output ->
+                                    input.copyTo(output, 32 * 1024)
+                                }
                             }
-                        }
-                    } else {
-                        val bytes = Res.readBytes(item.pdfPath)
-                        tempTarget.writeBytes(bytes)
+                            if (tempTarget.exists() && tempTarget.length() > 0L) {
+                                streamSuccess = true
+                                break
+                            }
+                        } catch (_: Exception) {}
                     }
 
-                    if (tempTarget.exists() && tempTarget.length() > 0L) {
+                    // Tier 2: Stream on-demand from Cloudflare Gateway / Telegram CDN
+                    if (!streamSuccess) {
+                        try {
+                            val streamUrl = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getStreamUrl(item)
+                            if (streamUrl.isNotBlank() && streamUrl.startsWith("http")) {
+                                isDownloading = true
+                                val connection = java.net.URL(streamUrl).openConnection() as java.net.HttpURLConnection
+                                connection.connectTimeout = 15000
+                                connection.readTimeout = 30000
+                                connection.setRequestProperty("User-Agent", "Mozilla/5.0")
+                                connection.connect()
+
+                                if (connection.responseCode in 200..299) {
+                                    val totalBytes = connection.contentLengthLong.takeIf { it > 0 } ?: (item.id.let { 
+                                        com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)?.file_size 
+                                    } ?: -1L)
+
+                                    connection.inputStream.use { input ->
+                                        java.io.FileOutputStream(tempTarget).use { output ->
+                                            val buffer = ByteArray(64 * 1024)
+                                            var bytesCopied = 0L
+                                            var bytesRead: Int
+                                            while (input.read(buffer).also { bytesRead = it } != -1) {
+                                                ensureActive()
+                                                output.write(buffer, 0, bytesRead)
+                                                bytesCopied += bytesRead
+                                                if (totalBytes > 0) {
+                                                    downloadProgress = (bytesCopied.toFloat() / totalBytes.toFloat()).coerceIn(0f, 1f)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (tempTarget.exists() && tempTarget.length() > 0L) {
+                                        streamSuccess = true
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
+                            e.printStackTrace()
+                        } finally {
+                            isDownloading = false
+                        }
+                    }
+
+                    // Tier 3: Res.readBytes fallback (if packed)
+                    if (!streamSuccess) {
+                        try {
+                            val bytes = Res.readBytes(item.pdfPath)
+                            tempTarget.writeBytes(bytes)
+                            if (tempTarget.exists() && tempTarget.length() > 0L) {
+                                streamSuccess = true
+                            }
+                        } catch (_: Exception) {}
+                    }
+
+                    if (streamSuccess && tempTarget.exists() && tempTarget.length() > 0L) {
                         tempTarget.renameTo(file)
+                    } else {
+                        throw Exception("تعذر تنزيل الملف، يرجى التأكد من اتصال الإنترنت.")
                     }
                 }
             }
@@ -430,10 +487,42 @@ actual fun PdfViewerScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                com.Nightjar.Th3GradeLibraryKMP.ui.ExpressiveLoadingIndicator(
-                    modifier = Modifier.size(48.dp),
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    com.Nightjar.Th3GradeLibraryKMP.ui.ExpressiveLoadingIndicator(
+                        modifier = Modifier.size(56.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    if (isDownloading) {
+                        val percent = (downloadProgress * 100).toInt()
+                        Text(
+                            text = if (percent > 0) "جاري التحميل من سحابة الكتب: $percent%" else "جاري بدء التحميل السحابي السريع...",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LinearProgressIndicator(
+                            progress = { downloadProgress },
+                            modifier = Modifier
+                                .width(220.dp)
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        )
+                    } else {
+                        Text(
+                            text = "جاري تهيئة وعرض الصفحات...",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                        )
+                    }
+                }
             }
         } else {
             val pageCount = pdfRenderer!!.pageCount
