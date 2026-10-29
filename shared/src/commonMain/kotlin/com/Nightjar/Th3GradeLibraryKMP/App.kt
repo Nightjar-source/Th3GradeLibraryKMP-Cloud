@@ -706,17 +706,16 @@ fun AppContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 1. Detached Title Island (Oval Pill)
+                            // 1. Detached Floating Elements (Circle Back/Icon + Oval Title Pill)
                             Row(
-                                modifier = Modifier
-                                    .weight(1f, fill = false)
-                                    .height(topBarHeight)
-                                    .liquidGlass(isDark, borderRadius = 28.dp, alpha = 0.95f)
-                                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                // A. Circular Detached Island: Back Button or App Icon
                                 Box(
-                                    modifier = Modifier.size(44.dp),
+                                    modifier = Modifier
+                                        .size(topBarHeight)
+                                        .liquidGlass(isDark, borderRadius = topBarHeight / 2, alpha = 0.95f),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     androidx.compose.animation.AnimatedVisibility(
@@ -727,7 +726,8 @@ fun AppContent(
                                         IconButton(
                                             onClick = {
                                                 handleTopBarBack()
-                                            }
+                                            },
+                                            modifier = Modifier.size(topBarHeight)
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.ChevronRight,
@@ -744,7 +744,7 @@ fun AppContent(
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(40.dp)
+                                                .size(topBarHeight - 8.dp)
                                                 .clip(CircleShape)
                                                 .background(
                                                     Brush.radialGradient(
@@ -759,13 +759,13 @@ fun AppContent(
                                             Image(
                                                 painter = painterResource(com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.drawable.app_icon),
                                                 contentDescription = "App Icon",
-                                                modifier = Modifier.size(28.dp).clip(CircleShape)
+                                                modifier = Modifier.size(topBarHeight - 16.dp).clip(CircleShape)
                                             )
                                         }
                                     }
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
 
+                                // B. Oval Detached Island: Screen Name Title
                                 var savedTitle by remember { mutableStateOf("مكتبة الثالث متوسط") }
                                 val appBarTitleRaw = when (page) {
                                     "news" -> "آخر الأخبار"
@@ -779,33 +779,38 @@ fun AppContent(
                                     savedTitle = appBarTitleRaw
                                 }
 
-                                AnimatedContent(
-                                    targetState = savedTitle,
-                                    transitionSpec = {
-                                        (slideInVertically { height -> height / 2 } + fadeIn(tween(220)))
-                                            .togetherWith(slideOutVertically { height -> -height / 2 } + fadeOut(tween(220)))
-                                    },
-                                    label = "titleTransition"
-                                ) { targetTitle ->
-                                    Text(
-                                        text = targetTitle,
-                                        fontSize = if (isWide) 16.sp else 18.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = if (targetTitle == "مكتبة الثالث متوسط") com.Nightjar.Th3GradeLibraryKMP.theme.KufiReemFontFamily else null,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
+                                Box(
+                                    modifier = Modifier
+                                        .height(topBarHeight)
+                                        .liquidGlass(isDark, borderRadius = topBarHeight / 2, alpha = 0.95f)
+                                        .padding(horizontal = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AnimatedContent(
+                                        targetState = savedTitle,
+                                        transitionSpec = {
+                                            (slideInVertically { height -> height / 2 } + fadeIn(tween(220)))
+                                                .togetherWith(slideOutVertically { height -> -height / 2 } + fadeOut(tween(220)))
+                                        },
+                                        label = "titleTransition"
+                                    ) { targetTitle ->
+                                        Text(
+                                            text = targetTitle,
+                                            fontSize = if (isWide) 15.sp else 17.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = if (targetTitle == "مكتبة الثالث متوسط") com.Nightjar.Th3GradeLibraryKMP.theme.KufiReemFontFamily else null,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
 
-                            // 2. Detached Actions Island (Oval Pill)
+                            // 2. Detached Actions: Separate Floating Circular Buttons
                             Row(
-                                modifier = Modifier
-                                    .height(topBarHeight)
-                                    .liquidGlass(isDark, borderRadius = 28.dp, alpha = 0.95f)
-                                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 AnimatedContent(
                                     targetState = page,
@@ -816,54 +821,89 @@ fun AppContent(
                                     },
                                     label = "topBarActions"
                                 ) { targetPage ->
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    if (targetPage == "list") {
-                                        IconButton(onClick = { SyncEngine.saveGridView(!isGridView) }) {
-                                            androidx.compose.animation.AnimatedContent(
-                                                targetState = isGridView,
-                                                transitionSpec = {
-                                                    (fadeIn(tween(200)) + scaleIn(initialScale = 0.8f)).togetherWith(fadeOut(tween(160)) + scaleOut(targetScale = 0.8f))
-                                                },
-                                                label = "gridToggle"
-                                            ) { isGrid ->
-                                                Icon(
-                                                    imageVector = if (isGrid) Icons.Default.ViewList else Icons.Default.GridView,
-                                                    contentDescription = "Toggle Grid/List view",
-                                                    tint = MaterialTheme.colorScheme.onSurface
-                                                )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        if (targetPage == "list") {
+                                            // Circular Detached Grid/List Toggle Button
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(topBarHeight)
+                                                    .liquidGlass(isDark, borderRadius = topBarHeight / 2, alpha = 0.95f),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                IconButton(
+                                                    onClick = { SyncEngine.saveGridView(!isGridView) },
+                                                    modifier = Modifier.size(topBarHeight)
+                                                ) {
+                                                    androidx.compose.animation.AnimatedContent(
+                                                        targetState = isGridView,
+                                                        transitionSpec = {
+                                                            (fadeIn(tween(200)) + scaleIn(initialScale = 0.8f)).togetherWith(fadeOut(tween(160)) + scaleOut(targetScale = 0.8f))
+                                                        },
+                                                        label = "gridToggle"
+                                                    ) { isGrid ->
+                                                        Icon(
+                                                            imageVector = if (isGrid) Icons.Default.ViewList else Icons.Default.GridView,
+                                                            contentDescription = "Toggle Grid/List view",
+                                                            tint = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                    }
+                                                }
                                             }
-                                        }
-                                        IconButton(onClick = { isSearchOpen = !isSearchOpen }) {
-                                            androidx.compose.animation.AnimatedContent(
-                                                targetState = isSearchOpen,
-                                                transitionSpec = {
-                                                    (fadeIn(tween(200)) + scaleIn(initialScale = 0.8f)).togetherWith(fadeOut(tween(160)) + scaleOut(targetScale = 0.8f))
-                                                },
-                                                label = "searchToggle"
-                                            ) { isOpen ->
-                                                Icon(
-                                                    imageVector = if (isOpen) Icons.Default.Close else Icons.Default.Search,
-                                                    contentDescription = "Toggle Search",
-                                                    tint = MaterialTheme.colorScheme.onSurface
-                                                )
+
+                                            // Circular Detached Search Button
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(topBarHeight)
+                                                    .liquidGlass(isDark, borderRadius = topBarHeight / 2, alpha = 0.95f),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                IconButton(
+                                                    onClick = { isSearchOpen = !isSearchOpen },
+                                                    modifier = Modifier.size(topBarHeight)
+                                                ) {
+                                                    androidx.compose.animation.AnimatedContent(
+                                                        targetState = isSearchOpen,
+                                                        transitionSpec = {
+                                                            (fadeIn(tween(200)) + scaleIn(initialScale = 0.8f)).togetherWith(fadeOut(tween(160)) + scaleOut(targetScale = 0.8f))
+                                                        },
+                                                        label = "searchToggle"
+                                                    ) { isOpen ->
+                                                        Icon(
+                                                            imageVector = if (isOpen) Icons.Default.Close else Icons.Default.Search,
+                                                            contentDescription = "Toggle Search",
+                                                            tint = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                    }
+                                                }
                                             }
+                                        } else if (targetPage == "news") {
+                                            // Circular Detached Settings Button
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(topBarHeight)
+                                                    .liquidGlass(isDark, borderRadius = topBarHeight / 2, alpha = 0.95f),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                IconButton(
+                                                    onClick = { isNewsSettingsOpen = true },
+                                                    modifier = Modifier.size(topBarHeight)
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Settings,
+                                                        contentDescription = "Settings",
+                                                        tint = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                }
+                                            }
+                                        } else {
+                                            Spacer(modifier = Modifier.width(0.dp))
                                         }
-                                    } else if (targetPage == "news") {
-                                        IconButton(onClick = { isNewsSettingsOpen = true }) {
-                                            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurface)
-                                        }
-                                    } else {
-                                        // Empty spacer to maintain spacing for other pages
-                                        Spacer(modifier = Modifier.width(0.dp))
                                     }
                                 }
                             }
-                            }
-                        }
-                    }
                 }
 
                 // --- Floating Search Bar (Aligned inside the Main Content Area) ---

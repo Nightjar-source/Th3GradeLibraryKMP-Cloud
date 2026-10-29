@@ -732,7 +732,23 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                     ) {
                         coil3.compose.AsyncImage(
                             model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
-                                .data(com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png"))
+                                .data(
+                                    remember(item) {
+                                        val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
+                                        val u = m?.cover_url
+                                        if (!u.isNullOrBlank()) {
+                                            u
+                                        } else if (item.coverResName.startsWith("http://") || item.coverResName.startsWith("https://")) {
+                                            item.coverResName
+                                        } else {
+                                            try {
+                                                com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png")
+                                            } catch (_: Exception) {
+                                                com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/app_icon.png")
+                                            }
+                                        }
+                                    }
+                                )
                                 .crossfade(!isReturningFromPdf)
                                 .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
                                 .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
@@ -838,7 +854,23 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                     ) {
                         coil3.compose.AsyncImage(
                             model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
-                                .data(com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png"))
+                                .data(
+                                    remember(item) {
+                                        val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
+                                        val u = m?.cover_url
+                                        if (!u.isNullOrBlank()) {
+                                            u
+                                        } else if (item.coverResName.startsWith("http://") || item.coverResName.startsWith("https://")) {
+                                            item.coverResName
+                                        } else {
+                                            try {
+                                                com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png")
+                                            } catch (_: Exception) {
+                                                com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/app_icon.png")
+                                            }
+                                        }
+                                    }
+                                )
                                 .crossfade(!isReturningFromPdf)
                                 .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
                                 .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
