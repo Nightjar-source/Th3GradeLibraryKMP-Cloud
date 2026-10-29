@@ -191,10 +191,11 @@ actual fun PdfViewerScreen(
         activeViewingBookId = item.id
         pendingCacheCleanups.remove("pdf_${item.id}.pdf")?.cancel()
         try {
-            val file = File(context.cacheDir, "pdf_${item.id}.pdf")
-            if (!file.exists() || file.length() == 0L) {
+            val file = com.Nightjar.Th3GradeLibraryKMP.data.BookStorageEngine.getPermanentFile(context, item)
+            if (!file.exists() || file.length() < 1024L) {
                 withContext(Dispatchers.IO) {
-                    val tempTarget = File(context.cacheDir, "pdf_${item.id}_${System.currentTimeMillis()}.tmp")
+                    val storageDir = com.Nightjar.Th3GradeLibraryKMP.data.BookStorageEngine.getStorageDir(context)
+                    val tempTarget = File(storageDir, "temp_${item.id}_${System.currentTimeMillis()}.tmp")
                     var streamSuccess = false
 
                     // Tier 1: Try bundled assets (for backward compatibility if asset exists)
@@ -330,27 +331,8 @@ actual fun PdfViewerScreen(
                     }
                 }
 
-                // 2. Official 2-Minute Grace Timer (120 seconds):
-                // Retains extracted PDF file and page cache in RAM for 2 minutes.
-                // If user re-opens this book within 2 minutes, launch is instantaneous with zero disk re-copy!
-                // If 2 minutes elapse without re-opening, cleanly deletes file and evicts cache.
-                val cleanupJob = CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        kotlinx.coroutines.delay(120_000L) // 2-Minute official timer
-                        if (activeViewingBookId != bookId) {
-                            if (fileToDelete != null && fileToDelete.exists()) {
-                                fileToDelete.delete()
-                            }
-                            PdfBitmapCache.evictBook(bookId)
-                            pendingCacheCleanups.remove("pdf_$bookId.pdf")
-                        }
-                    } catch (_: kotlinx.coroutines.CancellationException) {
-                        // User reopened the book within 2 minutes! Cleanup aborted safely.
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-                pendingCacheCleanups["pdf_$bookId.pdf"] = cleanupJob
+                // Evict in-memory decoded bitmap cache for this book, but KEEP the downloaded file permanently!
+                PdfBitmapCache.evictBook(bookId)
 
                 activity?.let { act ->
                     val window = act.window

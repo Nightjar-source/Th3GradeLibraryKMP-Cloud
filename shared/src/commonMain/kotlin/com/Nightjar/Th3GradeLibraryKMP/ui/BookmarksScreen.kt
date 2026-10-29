@@ -122,9 +122,10 @@ fun BookmarksScreen(
 
                 val activeTarget = TransitionTargetTracker.activeTargetId
                 val isTransitionActive = TransitionTargetTracker.isTransitionActive
-                val groupedPages = remember(savedPages, activeTarget, isTransitionActive) {
+                val isReturningFromPdf = LocalIsReturningFromPdf.current
+                val groupedPages = remember(savedPages, activeTarget, isTransitionActive, isReturningFromPdf) {
                     val allPages = savedPages.toMutableSet()
-                    if (isTransitionActive && activeTarget != null && activeTarget.startsWith("bookmark_")) {
+                    if ((isTransitionActive || isReturningFromPdf) && activeTarget != null && activeTarget.startsWith("bookmark_")) {
                         val sub = activeTarget.removePrefix("bookmark_")
                         val lastUnderscore = sub.lastIndexOf('_')
                         if (lastUnderscore > 0 && lastUnderscore < sub.length - 1) {

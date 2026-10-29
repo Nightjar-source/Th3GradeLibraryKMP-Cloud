@@ -685,8 +685,8 @@ fun AppContent(
                         } else Modifier
                     )
                 ) {
-                    val topBarHeight = if (isWide) 48.dp else 56.dp
-                    val topBarPaddingV = if (isWide) 4.dp else 8.dp
+                    val topBarHeight = if (isWide) 42.dp else 48.dp // Strictly < 56dp portrait, 42dp landscape
+                    val topBarPaddingV = if (isWide) 4.dp else 6.dp
                     Box(
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.statusBars.add(WindowInsets.captionBar))
@@ -702,17 +702,18 @@ fun AppContent(
                         Row(
                             modifier = Modifier
                                 .widthIn(max = 608.dp)
-                                .fillMaxWidth()
-                                .defaultMinSize(minHeight = topBarHeight)
-                                .wrapContentHeight()
-                                .liquidGlass(isDark, borderRadius = 28.dp, alpha = 0.95f)
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                                .fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // 1. Detached Title Island (Oval Pill)
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f).padding(start = 8.dp)
+                                modifier = Modifier
+                                    .weight(1f, fill = false)
+                                    .height(topBarHeight)
+                                    .liquidGlass(isDark, borderRadius = CircleShape, alpha = 0.95f)
+                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier.size(44.dp),
@@ -798,15 +799,23 @@ fun AppContent(
                                 }
                             }
 
-                            AnimatedContent(
-                                targetState = page,
-                                transitionSpec = {
-                                    (scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = 0.72f, stiffness = 260f)) + fadeIn(tween(220)))
-                                        .togetherWith(scaleOut(targetScale = 0.8f, animationSpec = tween(180)) + fadeOut(tween(180)))
-                                        .using(SizeTransform(clip = false))
-                                },
-                                label = "topBarActions"
-                            ) { targetPage ->
+                            // 2. Detached Actions Island (Oval Pill)
+                            Row(
+                                modifier = Modifier
+                                    .height(topBarHeight)
+                                    .liquidGlass(isDark, borderRadius = CircleShape, alpha = 0.95f)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AnimatedContent(
+                                    targetState = page,
+                                    transitionSpec = {
+                                        (scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = 0.72f, stiffness = 260f)) + fadeIn(tween(220)))
+                                            .togetherWith(scaleOut(targetScale = 0.8f, animationSpec = tween(180)) + fadeOut(tween(180)))
+                                            .using(SizeTransform(clip = false))
+                                    },
+                                    label = "topBarActions"
+                                ) { targetPage ->
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -851,6 +860,7 @@ fun AppContent(
                                         Spacer(modifier = Modifier.width(0.dp))
                                     }
                                 }
+                            }
                             }
                         }
                     }
@@ -1144,7 +1154,7 @@ fun AppContent(
                     modifier = Modifier
                         .widthIn(max = 480.dp)
                         .fillMaxWidth()
-                        .height(64.dp),
+                        .height(if (isWide) 44.dp else 52.dp), // Strictly < 56dp portrait, 44dp landscape
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -1152,13 +1162,13 @@ fun AppContent(
                     BoxWithConstraints(
                         modifier = Modifier
                             .weight(1f)
-                            .height(64.dp)
+                            .height(if (isWide) 44.dp else 52.dp)
                             .border(
                                 width = 1.dp,
                                 brush = Brush.linearGradient(listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))),
-                                shape = RoundedCornerShape(32.dp)
+                                shape = RoundedCornerShape(26.dp)
                             )
-                            .liquidGlass(isDark, borderRadius = 32.dp, alpha = 0.90f)
+                            .liquidGlass(isDark, borderRadius = 26.dp, alpha = 0.90f)
                             .padding(horizontal = 6.dp)
                     ) {
                         val contentWidth = maxWidth
@@ -1256,14 +1266,15 @@ fun AppContent(
                     )
                     Box(
                         modifier = Modifier
-                            .size(64.dp)
+                            .width(56.dp)
+                            .height(if (isWide) 44.dp else 52.dp)
                             .border(
                                 width = 1.dp,
                                 brush = Brush.linearGradient(listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))),
-                                shape = RoundedCornerShape(24.dp)
+                                shape = CircleShape
                             )
-                            .liquidGlass(isDark, borderRadius = 24.dp, alpha = 0.90f)
-                            .clip(RoundedCornerShape(24.dp))
+                            .liquidGlass(isDark, borderRadius = CircleShape, alpha = 0.90f)
+                            .clip(CircleShape)
                             .bounceClick {
                                 isDrawerOpen = !isDrawerOpen
                             },

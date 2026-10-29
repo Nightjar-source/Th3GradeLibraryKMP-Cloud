@@ -130,6 +130,71 @@ fun LibraryScreen(
                 }
 
                 val dynamicTopPadding = if (isWide) statusBarHeight + 64.dp else statusBarHeight + 76.dp
+        
+        // First-time Launch Download Options Prompt
+        val screenContext = coil3.compose.LocalPlatformContext.current
+        var hasSeenDownloadOptions by remember { 
+            mutableStateOf(com.Nightjar.Th3GradeLibraryKMP.data.AppDataStore.getBoolean("has_seen_download_options", false)) 
+        }
+        var showDownloadDialog by remember { mutableStateOf(!hasSeenDownloadOptions) }
+
+        if (showDownloadDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    com.Nightjar.Th3GradeLibraryKMP.data.AppDataStore.putBoolean("has_seen_download_options", true)
+                    showDownloadDialog = false
+                },
+                title = {
+                    Text(
+                        "خيارات التحميل لأول مرة",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "مرحباً بك في مكتبة الثالث متوسط! اختر الطريقة المفضلة لتنزيل الكتب والملازم:",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                "جاري تحميل الملفات لأول مرة وبعدها ستكون الملفات أوفلاين بدون أي إنترنت.",
+                                modifier = Modifier.padding(10.dp),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            com.Nightjar.Th3GradeLibraryKMP.data.AppDataStore.putBoolean("has_seen_download_options", true)
+                            showDownloadDialog = false
+                            val all = com.Nightjar.Th3GradeLibraryKMP.data.AllItems.books + com.Nightjar.Th3GradeLibraryKMP.data.AllItems.notes
+                            com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.downloadAll(screenContext, all)
+                        }
+                    ) {
+                        Text("تنزيل الكل الآن")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            com.Nightjar.Th3GradeLibraryKMP.data.AppDataStore.putBoolean("has_seen_download_options", true)
+                            showDownloadDialog = false
+                        }
+                    ) {
+                        Text("تنزيل فردي عند الحاجة")
+                    }
+                }
+            )
+        }
                     
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -311,6 +376,41 @@ fun LibraryScreen(
                             }
                         }
                     }
+
+                // Alert Notification Banner for Cloud Downloads
+                val activeNotice by com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.activeNoticeMessage.collectAsState()
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = activeNotice != null,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudDownload,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = activeNotice ?: "",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
 
                 LazyVerticalGrid(
                     state = lazyGridState,
@@ -583,6 +683,13 @@ fun LazyGridItemScope.ContentCard(
         }
     } else Modifier
 
+val platformContext = coil3.compose.LocalPlatformContext.current
+    val downloadStates by com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.itemStates.collectAsState()
+    val itemState = downloadStates[item.id] ?: com.Nightjar.Th3GradeLibraryKMP.network.ItemDownloadState()
+    val isDownloaded = remember(item, downloadStates) {
+        com.Nightjar.Th3GradeLibraryKMP.data.BookStorageEngine.isDownloaded(platformContext, item)
+    }
+
     Box(
         modifier = modifier
             .zIndex(if (isThisCardTarget) 15f else if (com.Nightjar.Th3GradeLibraryKMP.theme.LocalIsNavigatingBack.current) 1f else 0f)
@@ -597,9 +704,17 @@ fun LazyGridItemScope.ContentCard(
             .liquidGlass(isDark, borderRadius = cardCornerRadius, alpha = 0.5f)
             .clip(RoundedCornerShape(cardCornerRadius))
             .clickable {
-                TransitionTargetTracker.activeTargetId = "card_${item.id}"
-                TransitionTargetTracker.isTransitionActive = true
-                onClick()
+                if (isDownloaded) {
+                    TransitionTargetTracker.activeTargetId = "card_${item.id}"
+                    TransitionTargetTracker.isTransitionActive = true
+                    onClick()
+                } else {
+                    if (itemState.status == com.Nightjar.Th3GradeLibraryKMP.network.DownloadStatus.DOWNLOADING) {
+                        com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.pauseDownload(item)
+                    } else {
+                        com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.downloadItem(platformContext, item)
+                    }
+                }
             }
             .padding(12.dp)
     ) {
@@ -626,6 +741,50 @@ fun LazyGridItemScope.ContentCard(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
+
+                        // M3 Expressive Download Badge / Circular Progress
+                        if (!isDownloaded) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.38f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (itemState.status == com.Nightjar.Th3GradeLibraryKMP.network.DownloadStatus.DOWNLOADING) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        CircularProgressIndicator(
+                                            progress = { itemState.progress },
+                                            modifier = Modifier.size(38.dp),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            strokeWidth = 3.5.dp,
+                                            trackColor = Color.White.copy(alpha = 0.25f)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "${(itemState.progress * 100).toInt()}%",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.90f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowDownward,
+                                            contentDescription = "تنزيل",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -688,6 +847,40 @@ fun LazyGridItemScope.ContentCard(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
+
+                        if (!isDownloaded) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.38f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (itemState.status == com.Nightjar.Th3GradeLibraryKMP.network.DownloadStatus.DOWNLOADING) {
+                                    CircularProgressIndicator(
+                                        progress = { itemState.progress },
+                                        modifier = Modifier.size(28.dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        strokeWidth = 3.dp,
+                                        trackColor = Color.White.copy(alpha = 0.25f)
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.90f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowDownward,
+                                            contentDescription = "تنزيل",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(16.dp))

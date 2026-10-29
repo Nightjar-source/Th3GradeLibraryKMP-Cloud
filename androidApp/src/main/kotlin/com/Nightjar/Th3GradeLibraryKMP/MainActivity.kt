@@ -149,6 +149,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         isProcessDeath = savedInstanceState != null
+        AdMobManager.initialize(this)
         window.setBackgroundDrawableResource(R.drawable.splash_background)
         val splashScreen = installSplashScreen()
 

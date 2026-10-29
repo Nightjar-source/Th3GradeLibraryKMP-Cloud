@@ -55,7 +55,16 @@ object SyncEngine {
     private val _lastReadPages = MutableStateFlow<Map<String, Int>>(emptyMap())
     val lastReadPages = _lastReadPages.asStateFlow()
 
-    private val _expandedBookmarks = MutableStateFlow<Set<String>>(emptySet())
+    private fun loadInitialExpandedBookmarks(): Set<String> {
+        return try {
+            val str = settings.getString("expanded_bookmarks", "")
+            if (str.isNotBlank()) str.split(",").filter { it.isNotBlank() }.toSet() else emptySet()
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    private val _expandedBookmarks = MutableStateFlow<Set<String>>(loadInitialExpandedBookmarks())
     val expandedBookmarks = _expandedBookmarks.asStateFlow()
 
     private val _isGridView = MutableStateFlow(true)

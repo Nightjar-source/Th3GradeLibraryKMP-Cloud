@@ -95,6 +95,7 @@ dependencies {
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("androidx.browser:browser:1.8.0")
     implementation(libs.coil.compose)
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
 }
 
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
