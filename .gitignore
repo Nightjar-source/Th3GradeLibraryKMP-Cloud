@@ -41,3 +41,4 @@ secrets.properties
 credentials.json
 
 *.pdf
+release_apk/
