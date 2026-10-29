@@ -904,6 +904,8 @@ fun AppContent(
                                     }
                                 }
                             }
+                        }
+                    }
                 }
 
                 // --- Floating Search Bar (Aligned inside the Main Content Area) ---
