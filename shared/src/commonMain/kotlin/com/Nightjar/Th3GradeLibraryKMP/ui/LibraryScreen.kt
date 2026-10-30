@@ -116,6 +116,7 @@ fun LibraryScreen(
     ) {
         val isWide = widthClass != WindowWidthSizeClass.COMPACT
         val statusBarHeight = WindowInsets.statusBars.add(WindowInsets.captionBar).asPaddingValues().calculateTopPadding()
+        val dynamicTopPadding = if (isWide) statusBarHeight + 64.dp else statusBarHeight + 76.dp
         Column(modifier = Modifier.fillMaxSize()) {
             if (category == null) {
                 // Home/Categories view
@@ -129,9 +130,7 @@ fun LibraryScreen(
                     onScrollableStateChanged(canScroll)
                 }
 
-                val dynamicTopPadding = if (isWide) statusBarHeight + 64.dp else statusBarHeight + 76.dp
-        
-        // First-time Launch Download Options Prompt
+                // First-time Launch Download Options Prompt
         val screenContext = coil3.compose.LocalPlatformContext.current
         var hasSeenDownloadOptions by remember { 
             mutableStateOf(com.Nightjar.Th3GradeLibraryKMP.data.AppDataStore.getBoolean("has_seen_download_options", false)) 
@@ -398,15 +397,7 @@ fun LibraryScreen(
                     )
                 ) {
                     itemsIndexed(items = filteredList, key = { _, item -> item.id }, contentType = { _, _ -> "library_item" }) { index, item ->
-                        ContentCard(
-                            modifier = Modifier
-                                .animateItem(
-                                    placementSpec = spring(
-                                        dampingRatio = 0.80f,
-                                        stiffness = 300f
-                                    )
-                                )
-                                .adaptiveItemEntrance(index, itemId = item.id),
+                        LibraryItem(
                             item = item,
                             isGridView = isGridView,
                             isDark = isDark,
@@ -414,7 +405,6 @@ fun LibraryScreen(
                             onClick = { onNavigateToPdf(item) }
                         )
                     }
-                }
                 }
             }
         }
@@ -469,7 +459,6 @@ fun LibraryScreen(
             }
         }
     }
-}
 }
 
 @Composable
