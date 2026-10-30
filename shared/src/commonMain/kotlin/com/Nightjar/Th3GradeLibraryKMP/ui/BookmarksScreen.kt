@@ -243,7 +243,6 @@ fun BookAccordionItem(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .animateContentSize(spring(dampingRatio = 0.82f, stiffness = 280f))
             .liquidGlass(isDark, borderRadius = 20.dp, alpha = 0.96f)
             .clip(RoundedCornerShape(20.dp))
     ) {
@@ -265,6 +264,8 @@ fun BookAccordionItem(
                 AsyncImage(
                     model = ImageRequest.Builder(LocalPlatformContext.current)
                         .data(Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png"))
+                    .memoryCacheKey("book_cover_${item.id}")
+                    .diskCacheKey("book_cover_${item.id}")
                     .memoryCachePolicy(CachePolicy.ENABLED)
                     .diskCachePolicy(CachePolicy.ENABLED)
                     .build(),

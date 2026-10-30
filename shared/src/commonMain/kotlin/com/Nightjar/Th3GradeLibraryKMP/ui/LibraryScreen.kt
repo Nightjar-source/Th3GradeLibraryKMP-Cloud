@@ -144,6 +144,11 @@ fun LibraryScreen(
                     com.Nightjar.Th3GradeLibraryKMP.data.AppDataStore.putBoolean("has_seen_download_options", true)
                     showDownloadDialog = false
                 },
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                shape = RoundedCornerShape(28.dp),
+                tonalElevation = 6.dp,
                 title = {
                     Text(
                         "خيارات التحميل لأول مرة",
@@ -377,41 +382,6 @@ fun LibraryScreen(
                         }
                     }
 
-                // Alert Notification Banner for Cloud Downloads
-                val activeNotice by com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.activeNoticeMessage.collectAsState()
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = activeNotice != null,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CloudDownload,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = activeNotice ?: "",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-                }
-
                 LazyVerticalGrid(
                     state = lazyGridState,
                     userScrollEnabled = true,
@@ -448,7 +418,58 @@ fun LibraryScreen(
                 }
             }
         }
+
+        // Floating Alert Notification Banner for Cloud Downloads (Floating Stadium Pill over content)
+        val activeNotice by com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.activeNoticeMessage.collectAsState()
+        androidx.compose.animation.AnimatedVisibility(
+            visible = activeNotice != null,
+            enter = slideInVertically(
+                initialOffsetY = { -it },
+                animationSpec = spring(dampingRatio = 0.78f, stiffness = 320f)
+            ) + fadeIn(tween(220)),
+            exit = slideOutVertically(
+                targetOffsetY = { -it },
+                animationSpec = spring(dampingRatio = 0.78f, stiffness = 320f)
+            ) + fadeOut(tween(180)),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = dynamicTopPadding + 8.dp)
+                .zIndex(50f)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.96f),
+                tonalElevation = 6.dp,
+                shadowElevation = 8.dp,
+                modifier = Modifier
+                    .padding(horizontal = 24.dp)
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), CircleShape)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CloudDownload,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = activeNotice ?: "",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
     }
+}
 }
 
 @Composable
@@ -730,33 +751,74 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                             .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     ) {
-                        coil3.compose.AsyncImage(
-                            model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
-                                .data(
-                                    remember(item) {
-                                        val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
-                                        val u = m?.cover_url
-                                        if (!u.isNullOrBlank()) {
-                                            u
-                                        } else if (item.coverResName.startsWith("http://") || item.coverResName.startsWith("https://")) {
-                                            item.coverResName
-                                        } else {
-                                            try {
-                                                com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png")
-                                            } catch (_: Exception) {
-                                                com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/app_icon.png")
+                        val hasCustomCover = remember(item) {
+                            val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
+                            !m?.cover_url.isNullOrBlank() || item.coverResName.isNotBlank()
+                        }
+                        if (!hasCustomCover) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(parseHexColor(item.colorStart), parseHexColor(item.colorEnd))
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MenuBook,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(42.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = item.title,
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        } else {
+                            coil3.compose.AsyncImage(
+                                model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
+                                    .data(
+                                        remember(item) {
+                                            val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
+                                            val u = m?.cover_url
+                                            if (!u.isNullOrBlank()) {
+                                                u
+                                            } else if (item.coverResName.startsWith("http://") || item.coverResName.startsWith("https://")) {
+                                                item.coverResName
+                                            } else {
+                                                try {
+                                                    com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png")
+                                                } catch (_: Exception) {
+                                                    com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/app_icon.png")
+                                                }
                                             }
                                         }
-                                    }
-                                )
-                                .crossfade(!isReturningFromPdf)
-                                .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
-                                .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
-                                .build(),
-                            contentDescription = item.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                                    )
+                                    .crossfade(!isReturningFromPdf)
+                                    .memoryCacheKey("book_cover_${item.id}")
+                                    .diskCacheKey("book_cover_${item.id}")
+                                    .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
+                                    .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
+                                    .build(),
+                                contentDescription = item.title,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
 
                         // M3 Expressive Download Badge / Circular Progress
                         if (!isBookDownloaded) {
@@ -852,33 +914,59 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                             .clip(RoundedCornerShape(14.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     ) {
-                        coil3.compose.AsyncImage(
-                            model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
-                                .data(
-                                    remember(item) {
-                                        val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
-                                        val u = m?.cover_url
-                                        if (!u.isNullOrBlank()) {
-                                            u
-                                        } else if (item.coverResName.startsWith("http://") || item.coverResName.startsWith("https://")) {
-                                            item.coverResName
-                                        } else {
-                                            try {
-                                                com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png")
-                                            } catch (_: Exception) {
-                                                com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/app_icon.png")
+                        val hasCustomCoverList = remember(item) {
+                            val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
+                            !m?.cover_url.isNullOrBlank() || item.coverResName.isNotBlank()
+                        }
+                        if (!hasCustomCoverList) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(parseHexColor(item.colorStart), parseHexColor(item.colorEnd))
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MenuBook,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        } else {
+                            coil3.compose.AsyncImage(
+                                model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
+                                    .data(
+                                        remember(item) {
+                                            val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
+                                            val u = m?.cover_url
+                                            if (!u.isNullOrBlank()) {
+                                                u
+                                            } else if (item.coverResName.startsWith("http://") || item.coverResName.startsWith("https://")) {
+                                                item.coverResName
+                                            } else {
+                                                try {
+                                                    com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png")
+                                                } catch (_: Exception) {
+                                                    com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/app_icon.png")
+                                                }
                                             }
                                         }
-                                    }
-                                )
-                                .crossfade(!isReturningFromPdf)
-                                .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
-                                .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
-                                .build(),
-                            contentDescription = item.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                                    )
+                                    .crossfade(!isReturningFromPdf)
+                                    .memoryCacheKey("book_cover_${item.id}")
+                                    .diskCacheKey("book_cover_${item.id}")
+                                    .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
+                                    .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
+                                    .build(),
+                                contentDescription = item.title,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
 
                         if (!isBookDownloaded) {
                             Box(

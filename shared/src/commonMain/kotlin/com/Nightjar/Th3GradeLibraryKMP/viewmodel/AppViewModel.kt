@@ -245,7 +245,7 @@ class AppViewModel : ViewModel() {
      */
     fun navigateTo(newPage: String) {
         isNavigatingBack = false
-        if (newPage != "home" && newPage != "list") {
+        if (newPage != "home" && newPage != "list" && newPage != "bookmarks") {
             isReturningFromPdf = false
         }
         isAppSettingsOpen = false

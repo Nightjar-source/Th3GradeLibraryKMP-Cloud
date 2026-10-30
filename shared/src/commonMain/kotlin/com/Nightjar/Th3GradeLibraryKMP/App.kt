@@ -71,7 +71,8 @@ fun App(
     initialPage: String? = null,
     initialSearchQuery: String? = null,
     isProcessDeath: Boolean = false,
-    onIntentConsumed: () -> Unit = {}
+    onIntentConsumed: () -> Unit = {},
+    bottomBannerAd: @Composable (() -> Unit)? = null
 ) {
     val appSettings by SyncEngine.appSettings.collectAsState()
     
@@ -136,7 +137,8 @@ fun App(
                             initialPage = initialPage,
                             initialSearchQuery = initialSearchQuery,
                             isProcessDeath = isProcessDeath,
-                            onIntentConsumed = onIntentConsumed
+                            onIntentConsumed = onIntentConsumed,
+                            bottomBannerAd = bottomBannerAd
                         )
                     }
                 }
@@ -163,7 +165,8 @@ fun AppContent(
     initialPage: String?,
     initialSearchQuery: String?,
     isProcessDeath: Boolean = false,
-    onIntentConsumed: () -> Unit
+    onIntentConsumed: () -> Unit,
+    bottomBannerAd: @Composable (() -> Unit)? = null
 ) {
     val appSettings by SyncEngine.appSettings.collectAsState()
     val toastMessage by ToastManager.toastMessage.collectAsState()
@@ -302,9 +305,9 @@ fun AppContent(
     val isTransitionActive = com.Nightjar.Th3GradeLibraryKMP.ui.TransitionTargetTracker.isTransitionActive
     val activeTargetId = com.Nightjar.Th3GradeLibraryKMP.ui.TransitionTargetTracker.activeTargetId
 
-    val savedItems = remember(savedItemIds, isTransitionActive, activeTargetId) {
+    val savedItems = remember(savedItemIds, isTransitionActive, isReturningFromPdf, activeTargetId) {
         val savedBookIds = savedItemIds.map { it.split(":")[0] }.toMutableSet()
-        if (isTransitionActive && activeTargetId != null && activeTargetId.startsWith("bookmark_")) {
+        if ((isTransitionActive || isReturningFromPdf) && activeTargetId != null && activeTargetId.startsWith("bookmark_")) {
             val activeBookId = activeTargetId.substringAfter("bookmark_").substringBeforeLast("_")
             if (activeBookId.isNotEmpty()) savedBookIds.add(activeBookId)
         }
@@ -419,7 +422,7 @@ fun AppContent(
         val currentNavBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         val currentStatusBar = WindowInsets.statusBars.add(WindowInsets.captionBar).asPaddingValues().calculateTopPadding()
         
-        val listBottomPadding = if (isWide) 24.dp + currentNavBar else 110.dp + currentNavBar
+        val listBottomPadding = (if (isWide) 24.dp else 110.dp) + currentNavBar + (if (bottomBannerAd != null) 56.dp else 0.dp)
 
         CompositionLocalProvider(LocalStableStatusBarHeight provides currentStatusBar) {
         Box(
@@ -685,7 +688,7 @@ fun AppContent(
                         } else Modifier
                     )
                 ) {
-                    val topBarHeight = if (isWide) 42.dp else 48.dp // Strictly < 56dp portrait, 42dp landscape
+                    val topBarHeight = if (isWide) 42.dp else 56.dp // Strictly < 56dp portrait, 42dp landscape
                     val topBarPaddingV = if (isWide) 4.dp else 6.dp
                     Box(
                         modifier = Modifier
@@ -1196,7 +1199,7 @@ fun AppContent(
                     modifier = Modifier
                         .widthIn(max = 480.dp)
                         .fillMaxWidth()
-                        .height(if (isWide) 44.dp else 52.dp), // Strictly < 56dp portrait, 44dp landscape
+                        .height(if (isWide) 48.dp else 64.dp), // Strictly < 56dp portrait, 44dp landscape
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -1204,7 +1207,7 @@ fun AppContent(
                     BoxWithConstraints(
                         modifier = Modifier
                             .weight(1f)
-                            .height(if (isWide) 44.dp else 52.dp)
+                            .height(if (isWide) 48.dp else 64.dp)
                             .border(
                                 width = 1.dp,
                                 brush = Brush.linearGradient(listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))),
@@ -1309,7 +1312,7 @@ fun AppContent(
                     Box(
                         modifier = Modifier
                             .width(56.dp)
-                            .height(if (isWide) 44.dp else 52.dp)
+                            .height(if (isWide) 48.dp else 64.dp)
                             .border(
                                 width = 1.dp,
                                 brush = Brush.linearGradient(listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.05f))),

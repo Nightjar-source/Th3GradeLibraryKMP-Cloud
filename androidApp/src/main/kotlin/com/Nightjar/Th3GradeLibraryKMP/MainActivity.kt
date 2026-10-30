@@ -663,6 +663,9 @@ class MainActivity : ComponentActivity() {
                     bookIdState.value = null
                     pageState.value = null
                     searchQueryState.value = null
+                },
+                bottomBannerAd = {
+                    AdaptiveBannerAd()
                 }
             )
             

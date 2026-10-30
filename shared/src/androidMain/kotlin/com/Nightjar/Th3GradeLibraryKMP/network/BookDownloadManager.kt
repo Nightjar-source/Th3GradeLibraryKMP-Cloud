@@ -55,14 +55,26 @@ actual object BookDownloadManager {
         try {
             ensureNotificationChannel(context)
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val isDownloading = progress in 0..99
+            val icon = when {
+                progress >= 100 -> android.R.drawable.stat_sys_download_done
+                progress < 0 -> android.R.drawable.stat_notify_error
+                else -> android.R.drawable.stat_sys_download
+            }
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.stat_sys_download)
+                .setSmallIcon(icon)
                 .setContentTitle(title)
                 .setContentText(text)
-                .setOngoing(progress in 0..99)
-                .setOnlyAlertOnce(true)
+                .setOngoing(isDownloading)
+                .setAutoCancel(true)
+                .setOnlyAlertOnce(isDownloading)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setProgress(100, progress, isIndeterminate)
+
+            if (isDownloading) {
+                builder.setProgress(100, progress, isIndeterminate)
+            } else {
+                builder.setProgress(0, 0, false)
+            }
 
             nm.notify(NOTIFICATION_ID, builder.build())
         } catch (_: Exception) {}
@@ -163,9 +175,21 @@ actual object BookDownloadManager {
                 }
             } catch (ce: CancellationException) {
                 updateState(item.id, ItemDownloadState(status = DownloadStatus.PAUSED))
+                updateNotification(
+                    ctx,
+                    title = "تم إيقاف تحميل: ${item.title}",
+                    text = "تم إيقاف عملية التحميل مؤقتاً",
+                    progress = -1
+                )
             } catch (e: Exception) {
                 e.printStackTrace()
                 updateState(item.id, ItemDownloadState(status = DownloadStatus.FAILED, error = e.message))
+                updateNotification(
+                    ctx,
+                    title = "فشل تحميل: ${item.title}",
+                    text = "تعذر التنزيل من السحابة، يرجى التحقق من الاتصال والمحاولة لاحقاً",
+                    progress = -1
+                )
             } finally {
                 activeJobs.remove(item.id)
                 if (activeJobs.isEmpty() && !_isBatchDownloading.value) {

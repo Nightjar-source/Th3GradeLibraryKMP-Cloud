@@ -35,7 +35,7 @@ data class DynamicBookItem(
         return BookItem(
             id = id,
             title = title,
-            coverResName = cover_res.ifBlank { "ajh" },
+            coverResName = cover_res,
             pdfPath = pdf_path.ifBlank { "files/books/$id.pdf" },
             isNote = is_note,
             author = author,
@@ -165,7 +165,7 @@ object CloudCatalogManager {
     fun getStreamUrl(item: BookItem): String {
         val meta = getMeta(item)
         val stream = meta?.stream_url ?: meta?.direct_url
-        if (!stream.isNullOrBlank()) return stream
+        if (!stream.isNullOrBlank() && !stream.contains("t.me")) return stream
 
         // If file <= 20MB and file_id exists, use free Cloudflare worker stream
         val fileId = meta?.file_id
@@ -174,9 +174,13 @@ object CloudCatalogManager {
             return "https://th3books-gateway.karrar1iq.workers.dev/file/$fileId"
         }
 
-        // Otherwise return public telegram channel message URL
-        val msgId = meta?.msg_id ?: 1L
-        return "https://t.me/bookiraqi/$msgId"
+        // Direct GitHub Release CDN Fallback
+        val filename = meta?.fallback_filename
+        if (!filename.isNullOrBlank()) {
+            return "https://github.com/Nightjar-source/Th3GradeLibraryKMP-Cloud/releases/download/v2.0.0-cloud/$filename"
+        }
+
+        return ""
     }
 
     fun getTelegramChannelLink(item: BookItem): String {
