@@ -411,21 +411,24 @@ fun LibraryScreen(
 
         // Floating Alert Notification Banner for Cloud Downloads (Floating Stadium Pill over content)
         val activeNotice by com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.activeNoticeMessage.collectAsState()
-        androidx.compose.animation.AnimatedVisibility(
-            visible = activeNotice != null,
-            enter = slideInVertically(
-                initialOffsetY = { -it },
-                animationSpec = spring(dampingRatio = 0.78f, stiffness = 320f)
-            ) + fadeIn(tween(220)),
-            exit = slideOutVertically(
-                targetOffsetY = { -it },
-                animationSpec = spring(dampingRatio = 0.78f, stiffness = 320f)
-            ) + fadeOut(tween(180)),
+        Box(
             modifier = Modifier
-                .align(Alignment.TopCenter)
+                .fillMaxSize()
                 .padding(top = dynamicTopPadding + 8.dp)
-                .zIndex(50f)
+                .zIndex(50f),
+            contentAlignment = Alignment.TopCenter
         ) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = activeNotice != null,
+                enter = slideInVertically(
+                    initialOffsetY = { -it },
+                    animationSpec = spring(dampingRatio = 0.78f, stiffness = 320f)
+                ) + fadeIn(tween(220)),
+                exit = slideOutVertically(
+                    targetOffsetY = { -it },
+                    animationSpec = spring(dampingRatio = 0.78f, stiffness = 320f)
+                ) + fadeOut(tween(180))
+            ) {
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.96f),
@@ -457,6 +460,7 @@ fun LibraryScreen(
                     )
                 }
             }
+        }
         }
     }
 }
@@ -1040,5 +1044,4 @@ val platformContext = coil3.compose.LocalPlatformContext.current
             }
         }
     }
-
-
+}
