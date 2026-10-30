@@ -397,7 +397,7 @@ fun LibraryScreen(
                     )
                 ) {
                     itemsIndexed(items = filteredList, key = { _, item -> item.id }, contentType = { _, _ -> "library_item" }) { index, item ->
-                        LibraryItem(
+                        ContentCard(
                             item = item,
                             isGridView = isGridView,
                             isDark = isDark,
@@ -408,6 +408,7 @@ fun LibraryScreen(
                 }
             }
         }
+    }
 
         // Floating Alert Notification Banner for Cloud Downloads (Floating Stadium Pill over content)
         val activeNotice by com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.activeNoticeMessage.collectAsState()
@@ -1044,4 +1045,3 @@ val platformContext = coil3.compose.LocalPlatformContext.current
             }
         }
     }
-}
