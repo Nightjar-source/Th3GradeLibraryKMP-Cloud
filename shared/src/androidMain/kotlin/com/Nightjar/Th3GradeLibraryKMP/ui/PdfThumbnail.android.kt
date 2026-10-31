@@ -3,6 +3,7 @@ package com.Nightjar.Th3GradeLibraryKMP.ui
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import android.util.LruCache
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -11,9 +12,9 @@ import com.Nightjar.Th3GradeLibraryKMP.data.BookItem
 import com.Nightjar.Th3GradeLibraryKMP.data.BookStorageEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.concurrent.ConcurrentHashMap
 
-private val thumbnailMemoryCache = ConcurrentHashMap<String, ImageBitmap>()
+// Strictly bounded LRU Cache in memory (max 30 thumbnails ~ 15MB max) with automatic memory eviction
+private val thumbnailLruCache = object : LruCache<String, ImageBitmap>(30) {}
 
 @Composable
 actual fun rememberPdfCoverThumbnail(item: BookItem): ImageBitmap? {
@@ -26,7 +27,7 @@ actual fun rememberPdfCoverThumbnail(item: BookItem): ImageBitmap? {
                 val file = BookStorageEngine.getPermanentFile(context, item)
                 if (file.exists() && file.length() > 1024L) {
                     val cacheKey = "${item.id}_${file.lastModified()}"
-                    val cached = thumbnailMemoryCache[cacheKey]
+                    val cached = synchronized(thumbnailLruCache) { thumbnailLruCache.get(cacheKey) }
                     if (cached != null) {
                         withContext(Dispatchers.Main) {
                             bitmap = cached
@@ -43,7 +44,9 @@ actual fun rememberPdfCoverThumbnail(item: BookItem): ImageBitmap? {
                                     val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                                     page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                                     val imgBmp = bmp.asImageBitmap()
-                                    thumbnailMemoryCache[cacheKey] = imgBmp
+                                    synchronized(thumbnailLruCache) {
+                                        thumbnailLruCache.put(cacheKey, imgBmp)
+                                    }
                                     withContext(Dispatchers.Main) {
                                         bitmap = imgBmp
                                     }

@@ -7,7 +7,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -16,11 +15,11 @@ import androidx.compose.ui.unit.Velocity
 import kotlinx.coroutines.launch
 
 /**
- * Elastic bounce/overscroll effect on vertical scrolling.
- * Custom built smooth rubber band effect.
+ * Samsung One UI signature liquid elastic overscroll effect on vertical scrolling.
+ * Provides organic rubber-band pull-down reachability physics with smooth spring rebound.
  */
 fun Modifier.elasticOverscroll(
-    maxStretchRatio: Float = 0.10f,
+    maxStretchRatio: Float = 0.16f,
     topEnabled: Boolean = true,
     bottomEnabled: Boolean = true
 ): Modifier = composed {
@@ -65,10 +64,10 @@ fun Modifier.elasticOverscroll(
                         return Offset.Zero
                     }
                     
-                    val maxOffset = if (componentHeight > 0) componentHeight * maxStretchRatio else 140f
+                    val maxOffset = if (componentHeight > 0) componentHeight * maxStretchRatio else 180f
                     val current = overscrollOffset.value
                     val progress = (kotlin.math.abs(current) / maxOffset).coerceIn(0f, 1f)
-                    val resistance = 0.35f * (1f - progress * progress)
+                    val resistance = 0.45f * (1f - progress * 0.70f)
                     val targetOffset = (current + available.y * resistance).coerceIn(-maxOffset, maxOffset)
                     scope.launch { overscrollOffset.snapTo(targetOffset) }
                     return Offset(0f, available.y)
@@ -81,8 +80,8 @@ fun Modifier.elasticOverscroll(
                     overscrollOffset.animateTo(
                         0f,
                         spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
+                            dampingRatio = 0.76f,
+                            stiffness = 280f
                         )
                     )
                     return available
