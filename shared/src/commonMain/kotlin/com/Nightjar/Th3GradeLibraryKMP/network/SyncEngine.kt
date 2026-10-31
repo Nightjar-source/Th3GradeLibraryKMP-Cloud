@@ -236,6 +236,7 @@ object SyncEngine {
             val pdfScrollDirection = settings.getString("pdfScrollDirection", "vertical")
 
             val isOnboardingCompleted = settings.getBoolean("isOnboardingCompleted", false)
+            val autoDownloadOnUpdate = settings.getBoolean("autoDownloadOnUpdate", false)
 
             _appSettings.value = AppSettings(
                 theme = theme,
@@ -248,7 +249,8 @@ object SyncEngine {
                 cacheClearInterval = cacheClearInterval,
                 notificationSound = notificationSound,
                 lastSync = lastSync,
-                isOnboardingCompleted = isOnboardingCompleted
+                isOnboardingCompleted = isOnboardingCompleted,
+                autoDownloadOnUpdate = autoDownloadOnUpdate
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -268,6 +270,7 @@ object SyncEngine {
         settings.putBoolean("notificationSound", newSettings.notificationSound)
         settings.putLong("lastSync", newSettings.lastSync)
         settings.putBoolean("isOnboardingCompleted", newSettings.isOnboardingCompleted)
+        settings.putBoolean("autoDownloadOnUpdate", newSettings.autoDownloadOnUpdate)
         platformActionHandler?.rescheduleBackgroundSync()
     }
 

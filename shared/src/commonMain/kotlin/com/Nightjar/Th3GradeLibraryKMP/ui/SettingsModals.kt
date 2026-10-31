@@ -23,6 +23,7 @@ import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -423,6 +424,89 @@ fun AppSettingsModal(
                         }
                     }
                     
+                    Spacer(modifier = Modifier.height(20.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // --- Downloads & Offline Management Section ---
+                    Text(
+                        "إدارة التنزيلات والمحتوى الأوفلاين",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "التحكم في التنزيل التلقائي لجميع المقررات أو تنزيلها دفعة واحدة لتعمل بدون إنترنت.",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Switch: Auto Download On Update
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text("تنزيل المقررات تلقائياً عند التحديث", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                            Text("تحميل الكتب والملازم الجديدة في الخلفية تلقائياً", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = settings.autoDownloadOnUpdate,
+                            onCheckedChange = { onUpdateSettings(settings.copy(autoDownloadOnUpdate = it)) }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Button: Download All Books and Notes Now
+                    val platformContext = coil3.compose.LocalPlatformContext.current
+                    val isBatchDownloading by com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.isBatchDownloading.collectAsState()
+                    val batchProgress by com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.batchProgress.collectAsState()
+
+                    Button(
+                        onClick = {
+                            if (!isBatchDownloading) {
+                                val all = com.Nightjar.Th3GradeLibraryKMP.data.AllItems.books + com.Nightjar.Th3GradeLibraryKMP.data.AllItems.notes
+                                com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.downloadAll(platformContext, all)
+                                com.Nightjar.Th3GradeLibraryKMP.ui.ToastManager.showToast("بدأ تنزيل المناهج بالكامل للعمل أوفلاين...")
+                            } else {
+                                com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.cancelAll()
+                                com.Nightjar.Th3GradeLibraryKMP.ui.ToastManager.showToast("تم إيقاف التنزيل الجماعي")
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isBatchDownloading) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                            Icon(
+                                imageVector = if (isBatchDownloading) Icons.Default.Close else Icons.Default.Download,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isBatchDownloading) "إلغاء التنزيل الجماعي (${(batchProgress * 100).toInt()}%)" else "تحميل كافة الكتب والملازم الآن (أوفلاين)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.navigationBarsPadding().height(16.dp))
                 } // Close Column
 

@@ -165,6 +165,9 @@ actual object BookDownloadManager {
                 .setAutoCancel(true)
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+                .setSubText(if (isDownloading && progress >= 0) "$progress%" else null)
+                .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
 
             if (isDownloading) {
                 builder.setProgress(100, progress, isIndeterminate)

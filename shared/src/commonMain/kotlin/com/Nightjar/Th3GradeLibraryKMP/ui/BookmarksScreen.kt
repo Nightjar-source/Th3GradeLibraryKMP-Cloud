@@ -262,20 +262,34 @@ fun BookAccordionItem(
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                val pdfThumbnail = rememberPdfCoverThumbnail(item)
-                if (pdfThumbnail != null) {
-                    androidx.compose.foundation.Image(
-                        bitmap = pdfThumbnail,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else if (item.coverResName.isNotBlank() && item.coverResName != "ajh" && item.id != "b_abood") {
+                val cloudManifest by com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.manifest.collectAsState()
+                val cloudCoverUrl = remember(item, cloudManifest) {
+                    val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
+                    m?.cover_url?.takeIf { it.isNotBlank() }
+                }
+                val hasCloudCover = !cloudCoverUrl.isNullOrBlank()
+                val hasBundledCover = item.coverResName.isNotBlank() && item.coverResName != "app_icon" && item.coverResName != "ajh" && item.id != "b_abood"
+
+                if (hasCloudCover || hasBundledCover) {
+                    val coverData = remember(item, cloudCoverUrl) {
+                        if (hasCloudCover) {
+                            cloudCoverUrl
+                        } else if (item.coverResName.startsWith("http://") || item.coverResName.startsWith("https://")) {
+                            item.coverResName
+                        } else {
+                            try {
+                                Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png")
+                            } catch (_: Exception) {
+                                null
+                            }
+                        }
+                    }
+
                     AsyncImage(
                         model = ImageRequest.Builder(LocalPlatformContext.current)
-                            .data(Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png"))
-                            .memoryCacheKey("book_cover_${item.id}_${item.coverResName.hashCode()}")
-                            .diskCacheKey("book_cover_${item.id}_${item.coverResName.hashCode()}")
+                            .data(coverData)
+                            .memoryCacheKey("book_cover_${item.id}_${coverData.hashCode()}")
+                            .diskCacheKey("book_cover_${item.id}_${coverData.hashCode()}")
                             .memoryCachePolicy(CachePolicy.ENABLED)
                             .diskCachePolicy(CachePolicy.ENABLED)
                             .build(),
@@ -284,25 +298,35 @@ fun BookAccordionItem(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                androidx.compose.ui.graphics.Brush.linearGradient(
-                                    listOf(
-                                        Color(0xFF2563EB).copy(alpha = 0.25f),
-                                        Color(0xFF1D4ED8).copy(alpha = 0.40f)
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Bookmark,
+                    val pdfThumbnail = rememberPdfCoverThumbnail(item)
+                    if (pdfThumbnail != null) {
+                        androidx.compose.foundation.Image(
+                            bitmap = pdfThumbnail,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    androidx.compose.ui.graphics.Brush.linearGradient(
+                                        listOf(
+                                            Color(0xFF2563EB).copy(alpha = 0.25f),
+                                            Color(0xFF1D4ED8).copy(alpha = 0.40f)
+                                        )
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Bookmark,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }

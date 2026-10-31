@@ -1155,7 +1155,17 @@ fun AppContent(
 
 
 
-        // --- Bottom Banner Ad (Google AdMob Anchored Adaptive Banner) ---
+        // --- Dynamic Navigation & Banner Heights Calculation ---
+        val mainTabs = listOf("home", "list", "news", "bookmarks", "shortcuts", "about")
+        val hasBottomNavBar = !showOnboarding && page in mainTabs && !isWide
+        val targetBannerBottomPadding = if (hasBottomNavBar && isBottomBarVisible) 78.dp else 0.dp
+        val animatedBannerBottomPadding by animateDpAsState(
+            targetValue = targetBannerBottomPadding,
+            animationSpec = spring(dampingRatio = 0.78f, stiffness = 300f),
+            label = "bannerBottomPadding"
+        )
+
+        // --- Bottom Banner Ad (Google AdMob Anchored Adaptive Banner - Positioned ABOVE bottom nav bar) ---
         androidx.compose.animation.AnimatedVisibility(
             visible = !showOnboarding && page != "pdf" && bottomBannerAd != null,
             enter = slideInVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)) { it } + fadeIn(tween(250)),
@@ -1164,12 +1174,13 @@ fun AppContent(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                .padding(bottom = animatedBannerBottomPadding)
                 .zIndex(180f)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 2.dp),
+                    .padding(vertical = 2.dp),
                 contentAlignment = Alignment.Center
             ) {
                 bottomBannerAd?.invoke()
@@ -1177,9 +1188,8 @@ fun AppContent(
         }
 
         // --- Mobile Bottom Navigation Capsule (Only visible on small screens and main tabs) ---
-        val mainTabs = listOf("home", "list", "news", "bookmarks", "shortcuts", "about")
         androidx.compose.animation.AnimatedVisibility(
-            visible = !showOnboarding && page in mainTabs && !isWide,
+            visible = hasBottomNavBar,
             enter = slideInVertically(animationSpec = spring(dampingRatio = 0.76f, stiffness = 280f)) { it } + fadeIn(tween(260)),
             exit = slideOutVertically(animationSpec = spring(dampingRatio = 0.76f, stiffness = 280f)) { it } + fadeOut(tween(220)),
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().zIndex(200f).then(
@@ -1195,7 +1205,7 @@ fun AppContent(
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                     .offset { androidx.compose.ui.unit.IntOffset(x = 0, y = bottomBarOffsetHeightPx.roundToInt()) }
-                    .padding(bottom = if (bottomBannerAd != null) 66.dp else 16.dp, start = 16.dp, end = 16.dp),
+                    .padding(bottom = 12.dp, start = 16.dp, end = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 val mainNavItems = listOf(
@@ -1929,7 +1939,7 @@ fun AppContent(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .padding(bottom = if (page == "pdf") 96.dp else if (page == "web") 24.dp else if (isWide) 24.dp else (if (bottomBannerAd != null) 154.dp else 100.dp))
+                .padding(bottom = if (page == "pdf") 96.dp else if (page == "web") 24.dp else if (isWide) 24.dp else (if (bottomBannerAd != null) (animatedBannerBottomPadding + 64.dp) else 100.dp))
                 .zIndex(250f)
         ) {
             lastNonNullToastMessage?.let { msg ->

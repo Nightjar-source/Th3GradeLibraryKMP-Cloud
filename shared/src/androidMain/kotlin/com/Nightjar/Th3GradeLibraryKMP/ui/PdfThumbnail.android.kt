@@ -18,34 +18,41 @@ private val thumbnailMemoryCache = ConcurrentHashMap<String, ImageBitmap>()
 @Composable
 actual fun rememberPdfCoverThumbnail(item: BookItem): ImageBitmap? {
     val context = LocalContext.current
-    var bitmap by remember(item.id) { mutableStateOf(thumbnailMemoryCache[item.id]) }
+    var bitmap by remember(item.id) { mutableStateOf<ImageBitmap?>(null) }
 
-    if (bitmap == null) {
-        LaunchedEffect(item.id) {
-            withContext(Dispatchers.IO) {
-                try {
-                    val file = BookStorageEngine.getPermanentFile(context, item)
-                    if (file.exists() && file.length() > 1024L) {
-                        ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)?.use { pfd ->
-                            PdfRenderer(pfd).use { renderer ->
-                                if (renderer.pageCount > 0) {
-                                    renderer.openPage(0).use { page ->
-                                        val width = 360
-                                        val height = (360 * page.height / page.width).coerceAtLeast(480)
-                                        val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                                        page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                                        val imgBmp = bmp.asImageBitmap()
-                                        thumbnailMemoryCache[item.id] = imgBmp
-                                        withContext(Dispatchers.Main) {
-                                            bitmap = imgBmp
-                                        }
+    LaunchedEffect(item.id) {
+        withContext(Dispatchers.IO) {
+            try {
+                val file = BookStorageEngine.getPermanentFile(context, item)
+                if (file.exists() && file.length() > 1024L) {
+                    val cacheKey = "${item.id}_${file.lastModified()}"
+                    val cached = thumbnailMemoryCache[cacheKey]
+                    if (cached != null) {
+                        withContext(Dispatchers.Main) {
+                            bitmap = cached
+                        }
+                        return@withContext
+                    }
+
+                    ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)?.use { pfd ->
+                        PdfRenderer(pfd).use { renderer ->
+                            if (renderer.pageCount > 0) {
+                                renderer.openPage(0).use { page ->
+                                    val width = 360
+                                    val height = (360 * page.height / page.width).coerceAtLeast(480)
+                                    val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                                    page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                                    val imgBmp = bmp.asImageBitmap()
+                                    thumbnailMemoryCache[cacheKey] = imgBmp
+                                    withContext(Dispatchers.Main) {
+                                        bitmap = imgBmp
                                     }
                                 }
                             }
                         }
                     }
-                } catch (_: Exception) {}
-            }
+                }
+            } catch (_: Exception) {}
         }
     }
     return bitmap

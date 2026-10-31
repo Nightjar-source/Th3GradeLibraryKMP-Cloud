@@ -746,62 +746,35 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                             .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     ) {
-                        val hasCustomCover = remember(item) {
+                        val cloudManifest by com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.manifest.collectAsState()
+                        val cloudCoverUrl = remember(item, cloudManifest) {
                             val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
-                            !m?.cover_url.isNullOrBlank() || item.coverResName.isNotBlank()
+                            m?.cover_url?.takeIf { it.isNotBlank() }
                         }
-                        val pdfThumbnail = rememberPdfCoverThumbnail(item)
-                        if (pdfThumbnail != null) {
-                            androidx.compose.foundation.Image(
-                                bitmap = pdfThumbnail,
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else if (!hasCustomCover) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(
-                                                parseHexColor(item.colorStart).copy(alpha = 0.25f),
-                                                parseHexColor(item.colorEnd).copy(alpha = 0.40f)
-                                            )
-                                        )
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MenuBook,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                                    modifier = Modifier.size(36.dp)
-                                )
+                        val hasCloudCover = !cloudCoverUrl.isNullOrBlank()
+                        val hasBundledCover = item.coverResName.isNotBlank() && item.coverResName != "app_icon" && item.coverResName != "ajh" && item.id != "b_abood"
+
+                        if (hasCloudCover || hasBundledCover) {
+                            val coverData = remember(item, cloudCoverUrl) {
+                                if (hasCloudCover) {
+                                    cloudCoverUrl
+                                } else if (item.coverResName.startsWith("http://") || item.coverResName.startsWith("https://")) {
+                                    item.coverResName
+                                } else {
+                                    try {
+                                        com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png")
+                                    } catch (_: Exception) {
+                                        null
+                                    }
+                                }
                             }
-                        } else {
+
                             coil3.compose.AsyncImage(
                                 model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
-                                    .data(
-                                        remember(item) {
-                                            val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
-                                            val u = m?.cover_url
-                                            if (!u.isNullOrBlank()) {
-                                                u
-                                            } else if (item.coverResName.startsWith("http://") || item.coverResName.startsWith("https://")) {
-                                                item.coverResName
-                                            } else {
-                                                try {
-                                                    com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png")
-                                                } catch (_: Exception) {
-                                                    com.Nightjar.Th3GradeLibraryKMP.generated.resources.Res.getUri("drawable/app_icon.png")
-                                                }
-                                            }
-                                        }
-                                    )
+                                    .data(coverData)
                                     .crossfade(!isReturningFromPdf)
-                                    .memoryCacheKey("book_cover_${item.id}_${(com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)?.cover_url ?: item.coverResName).hashCode()}")
-                                    .diskCacheKey("book_cover_${item.id}_${(com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)?.cover_url ?: item.coverResName).hashCode()}")
+                                    .memoryCacheKey("book_cover_${item.id}_${coverData.hashCode()}")
+                                    .diskCacheKey("book_cover_${item.id}_${coverData.hashCode()}")
                                     .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
                                     .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
                                     .build(),
@@ -809,6 +782,37 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
+                        } else {
+                            val pdfThumbnail = rememberPdfCoverThumbnail(item)
+                            if (pdfThumbnail != null) {
+                                androidx.compose.foundation.Image(
+                                    bitmap = pdfThumbnail,
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    parseHexColor(item.colorStart).copy(alpha = 0.25f),
+                                                    parseHexColor(item.colorEnd).copy(alpha = 0.40f)
+                                                )
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MenuBook,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                }
+                            }
                         }
 
                         // M3 Expressive Download Badge / Circular Progress

@@ -37,7 +37,8 @@ data class AppSettings(
     val cacheClearInterval: String = "6m", // 7d, 1m, 3m, 6m, never
     val notificationSound: Boolean = false,
     val lastSync: Long = 0,
-    val isOnboardingCompleted: Boolean = false
+    val isOnboardingCompleted: Boolean = false,
+    val autoDownloadOnUpdate: Boolean = false
 )
 
 object AllItems {
