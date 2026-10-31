@@ -415,8 +415,8 @@ fun LibraryScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = dynamicTopPadding + 8.dp)
-                .zIndex(50f),
+                .padding(top = dynamicTopPadding + 10.dp)
+                .zIndex(300f),
             contentAlignment = Alignment.TopCenter
         ) {
             androidx.compose.animation.AnimatedVisibility(
@@ -436,7 +436,8 @@ fun LibraryScreen(
                 tonalElevation = 6.dp,
                 shadowElevation = 8.dp,
                 modifier = Modifier
-                    .padding(horizontal = 24.dp)
+                    .widthIn(max = 480.dp)
+                    .padding(horizontal = 20.dp)
                     .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), CircleShape)
             ) {
                 Row(
@@ -749,38 +750,34 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                             val m = com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)
                             !m?.cover_url.isNullOrBlank() || item.coverResName.isNotBlank()
                         }
-                        if (!hasCustomCover) {
+                        val pdfThumbnail = rememberPdfCoverThumbnail(item)
+                        if (pdfThumbnail != null) {
+                            androidx.compose.foundation.Image(
+                                bitmap = pdfThumbnail,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else if (!hasCustomCover) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(
                                         Brush.linearGradient(
-                                            listOf(parseHexColor(item.colorStart), parseHexColor(item.colorEnd))
+                                            listOf(
+                                                parseHexColor(item.colorStart).copy(alpha = 0.25f),
+                                                parseHexColor(item.colorEnd).copy(alpha = 0.40f)
+                                            )
                                         )
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.padding(12.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.MenuBook,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(42.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = item.title,
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
+                                Icon(
+                                    imageVector = Icons.Default.MenuBook,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                    modifier = Modifier.size(36.dp)
+                                )
                             }
                         } else {
                             coil3.compose.AsyncImage(
@@ -803,8 +800,8 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                                         }
                                     )
                                     .crossfade(!isReturningFromPdf)
-                                    .memoryCacheKey("book_cover_${item.id}")
-                                    .diskCacheKey("book_cover_${item.id}")
+                                    .memoryCacheKey("book_cover_${item.id}_${(com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)?.cover_url ?: item.coverResName).hashCode()}")
+                                    .diskCacheKey("book_cover_${item.id}_${(com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)?.cover_url ?: item.coverResName).hashCode()}")
                                     .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
                                     .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
                                     .build(),
@@ -838,6 +835,88 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White
                                         )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color.Black.copy(alpha = 0.6f))
+                                                    .clickable { com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.pauseDownload(item) },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Pause,
+                                                    contentDescription = "إيقاف مؤقت",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.85f))
+                                                    .clickable { com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.cancelDownload(item) },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "إلغاء",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                } else if (itemState.status == com.Nightjar.Th3GradeLibraryKMP.network.DownloadStatus.PAUSED) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = Icons.Default.PauseCircle,
+                                            contentDescription = "متوقف مؤقتاً",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(34.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "متوقف مؤقتاً",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primary)
+                                                    .clickable { com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.downloadItem(platformContext, item) },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.PlayArrow,
+                                                    contentDescription = "استئناف",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.85f))
+                                                    .clickable { com.Nightjar.Th3GradeLibraryKMP.network.BookDownloadManager.cancelDownload(item) },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "إلغاء",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 } else {
                                     Box(
@@ -951,8 +1030,8 @@ val platformContext = coil3.compose.LocalPlatformContext.current
                                         }
                                     )
                                     .crossfade(!isReturningFromPdf)
-                                    .memoryCacheKey("book_cover_${item.id}")
-                                    .diskCacheKey("book_cover_${item.id}")
+                                    .memoryCacheKey("book_cover_${item.id}_${(com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)?.cover_url ?: item.coverResName).hashCode()}")
+                                    .diskCacheKey("book_cover_${item.id}_${(com.Nightjar.Th3GradeLibraryKMP.network.CloudCatalogManager.getMeta(item)?.cover_url ?: item.coverResName).hashCode()}")
                                     .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
                                     .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
                                     .build(),

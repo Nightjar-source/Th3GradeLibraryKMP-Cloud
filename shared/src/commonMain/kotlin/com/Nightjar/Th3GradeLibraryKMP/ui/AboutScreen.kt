@@ -91,8 +91,17 @@ fun AboutScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Telegram Official Community Card
+            TelegramCommunityCard(
+                modifier = Modifier.fillMaxWidth().screenEntranceCascade(2),
+                onOpenUrl = onOpenUrl,
+                isDark = isDark
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Golden Spiritual Card
-            GoldenSpiritualCard(modifier = Modifier.fillMaxWidth().screenEntranceCascade(2), isDark = isDark)
+            GoldenSpiritualCard(modifier = Modifier.fillMaxWidth().screenEntranceCascade(3), isDark = isDark)
 
             Spacer(modifier = Modifier.height(bottomPadding))
         }
@@ -295,5 +304,77 @@ fun GoldenSpiritualCard(modifier: Modifier = Modifier, isDark: Boolean = false) 
             ),
             textAlign = TextAlign.Justify
         )
+    }
+}
+
+@Composable
+fun TelegramCommunityCard(modifier: Modifier = Modifier, onOpenUrl: (String) -> Unit, isDark: Boolean) {
+    Box(
+        modifier = modifier
+            .liquidGlass(isDark, borderRadius = 28.dp, alpha = 0.65f)
+            .padding(20.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF2AABEE).copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Message,
+                        contentDescription = null,
+                        tint = Color(0xFF2AABEE),
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column {
+                    Text(
+                        text = "قنوات ومجتمع تليغرام الرسمي",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "المصدر المعتمد للملازم والكتب والأخبار الوزارية",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = { onOpenUrl("https://t.me/bookiraqi") },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2AABEE),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.weight(1f).height(46.dp)
+                ) {
+                    Text("قناة الكتب @bookiraqi", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+
+                OutlinedButton(
+                    onClick = { onOpenUrl("https://t.me/Bookiraqbot") },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (isDark) Color(0xFF81D4FA) else Color(0xFF0288D1)
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.weight(1f).height(46.dp)
+                ) {
+                    Text("البوت @Bookiraqbot", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
     }
 }

@@ -169,7 +169,7 @@ fun Modifier.expressiveButtonMorph(
  */
 fun Modifier.screenEntranceStagger(index: Int = 0, itemId: String? = null): Modifier = composed {
     val isLowEnd = LocalIsLowEndDevice.current
-    if (isLowEnd || index > 12) return@composed this
+    if (isLowEnd) return@composed this
 
     val isReturningFromPdf = LocalIsReturningFromPdf.current
     val isNavigatingBack = LocalIsNavigatingBack.current
@@ -196,7 +196,7 @@ fun Modifier.screenEntranceStagger(index: Int = 0, itemId: String? = null): Modi
     val offsetYPx = androidx.compose.runtime.remember(density) { with(density) { 14.dp.toPx() } }
 
     androidx.compose.runtime.LaunchedEffect(screenKey, itemKey) {
-        val staggerDelay = (index.coerceIn(0, 8) * 22L)
+        val staggerDelay = ((index % 8).coerceIn(0, 7) * 24L)
         if (staggerDelay > 0) kotlinx.coroutines.delay(staggerDelay)
         animProgress.animateTo(
             targetValue = 1f,
@@ -232,13 +232,7 @@ fun Modifier.popInOnInitialLoad(index: Int = 0, itemId: String? = null): Modifie
  * Unified adaptive entrance: Screen Entrance Cascade for initial visible items (0..8).
  * Scrolled items (> 8) are rendered instantly without overhead to preserve 120 FPS scrolling.
  */
-fun Modifier.adaptiveItemEntrance(index: Int = 0, itemId: String? = null): Modifier = composed {
-    if (index <= 8) {
-        this.screenEntranceCascade(index, itemId)
-    } else {
-        this
-    }
-}
+fun Modifier.adaptiveItemEntrance(index: Int = 0, itemId: String? = null): Modifier = this.screenEntranceCascade(index % 8, itemId)
 
 val KufiReemFontFamily: FontFamily
     @Composable

@@ -202,6 +202,7 @@ fun BookmarksScreen(
                         if (book != null) {
                             val pages = groupedPages[bookId] ?: emptyList()
                                 BookAccordionItem(
+                                modifier = Modifier.animateItem(placementSpec = spring(dampingRatio = 0.82f, stiffness = 280f)),
                                 item = book,
                                 pages = pages,
                                 isPageSaved = { pageIdx -> savedPages.contains("${book.id}:$pageIdx") },
@@ -261,18 +262,49 @@ fun BookAccordionItem(
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalPlatformContext.current)
-                        .data(Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png"))
-                    .memoryCacheKey("book_cover_${item.id}")
-                    .diskCacheKey("book_cover_${item.id}")
-                    .memoryCachePolicy(CachePolicy.ENABLED)
-                    .diskCachePolicy(CachePolicy.ENABLED)
-                    .build(),
-                    contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                val pdfThumbnail = rememberPdfCoverThumbnail(item)
+                if (pdfThumbnail != null) {
+                    androidx.compose.foundation.Image(
+                        bitmap = pdfThumbnail,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (item.coverResName.isNotBlank() && item.coverResName != "ajh" && item.id != "b_abood") {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                            .data(Res.getUri("drawable/${item.coverResName}." + if (item.coverResName in listOf("ayajaaa", "english", "englishactivity", "kss1")) "jpg" else "png"))
+                            .memoryCacheKey("book_cover_${item.id}_${item.coverResName.hashCode()}")
+                            .diskCacheKey("book_cover_${item.id}_${item.coverResName.hashCode()}")
+                            .memoryCachePolicy(CachePolicy.ENABLED)
+                            .diskCachePolicy(CachePolicy.ENABLED)
+                            .build(),
+                        contentDescription = item.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                androidx.compose.ui.graphics.Brush.linearGradient(
+                                    listOf(
+                                        Color(0xFF2563EB).copy(alpha = 0.25f),
+                                        Color(0xFF1D4ED8).copy(alpha = 0.40f)
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Bookmark,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -400,7 +432,7 @@ fun BookAccordionItem(
                     // Remove exited page from tracker after shrink animation completes
                     LaunchedEffect(isVisible) {
                         if (!isVisible && !isRowActiveTarget) {
-                            kotlinx.coroutines.delay(350)
+                            kotlinx.coroutines.delay(550)
                             if (!isPageSaved(pageIndex)) {
                                 trackedPages.remove(pageIndex)
                             }

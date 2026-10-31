@@ -28,6 +28,8 @@ data class DynamicBookItem(
     val file_id: String = "",
     val file_size: Long = 0,
     val stream_url: String = "",
+    val backup_github_url: String = "",
+    val backup_telegram_url: String = "",
     val telegram_channel_url: String = "",
     val telegram_deep_link: String = ""
 ) {
@@ -53,6 +55,8 @@ data class CloudBookMeta(
     val file_id: String? = null,
     val file_size: Long? = null,
     val stream_url: String? = null,
+    val backup_github_url: String? = null,
+    val backup_telegram_url: String? = null,
     val telegram_channel_url: String? = null,
     val telegram_deep_link: String? = null,
     val direct_url: String? = null,
@@ -162,25 +166,55 @@ object CloudCatalogManager {
         }
     }
 
-    fun getStreamUrl(item: BookItem): String {
+    fun convertToDirectUrl(url: String): String {
+        if (url.isBlank()) return ""
+        if (url.contains("drive.google.com") && url.contains("/d/")) {
+            val fileId = url.substringAfter("/d/").substringBefore("/").substringBefore("?")
+            if (fileId.isNotBlank()) {
+                return "https://drive.usercontent.google.com/download?id=$fileId&export=download"
+            }
+        }
+        return url
+    }
+
+    fun getStreamCandidateUrls(item: BookItem): List<String> {
         val meta = getMeta(item)
-        val stream = meta?.stream_url ?: meta?.direct_url
-        if (!stream.isNullOrBlank() && !stream.contains("t.me")) return stream
+        val candidates = mutableListOf<String>()
 
-        // If file <= 20MB and file_id exists, use free Cloudflare worker stream
-        val fileId = meta?.file_id
-        val fileSize = meta?.file_size ?: 0L
-        if (fileSize in 1..(20 * 1024 * 1024) && !fileId.isNullOrBlank()) {
-            return "https://th3books-gateway.karrar1iq.workers.dev/file/$fileId"
+        // 1. Primary: Hugging Face or declared stream_url / direct_url
+        val primary = meta?.stream_url ?: meta?.direct_url
+        if (!primary.isNullOrBlank()) {
+            candidates.add(convertToDirectUrl(primary))
         }
 
-        // Direct GitHub Release CDN Fallback
-        val filename = meta?.fallback_filename
-        if (!filename.isNullOrBlank()) {
-            return "https://github.com/Nightjar-source/Th3GradeLibraryKMP-Cloud/releases/download/v2.0.0-cloud/$filename"
+        // 2. Secondary: GitHub Releases direct backup
+        val githubBackup = meta?.backup_github_url
+        if (!githubBackup.isNullOrBlank()) {
+            candidates.add(convertToDirectUrl(githubBackup))
+        } else {
+            val filename = meta?.fallback_filename
+            if (!filename.isNullOrBlank()) {
+                candidates.add("https://github.com/Nightjar-source/Th3GradeLibraryKMP-Cloud/releases/download/v2.0.0-cloud/$filename")
+            }
         }
 
-        return ""
+        // 3. Tertiary: Telegram worker / bot fallback
+        val telegramBackup = meta?.backup_telegram_url
+        if (!telegramBackup.isNullOrBlank() && !telegramBackup.contains("t.me")) {
+            candidates.add(convertToDirectUrl(telegramBackup))
+        } else {
+            val fileId = meta?.file_id
+            val fileSize = meta?.file_size ?: 0L
+            if (fileSize in 1..(20 * 1024 * 1024) && !fileId.isNullOrBlank()) {
+                candidates.add("https://th3books-gateway.karrar1iq.workers.dev/file/$fileId")
+            }
+        }
+
+        return candidates.distinct().filter { it.isNotBlank() && it.startsWith("http") }
+    }
+
+    fun getStreamUrl(item: BookItem): String {
+        return getStreamCandidateUrls(item).firstOrNull() ?: ""
     }
 
     fun getTelegramChannelLink(item: BookItem): String {

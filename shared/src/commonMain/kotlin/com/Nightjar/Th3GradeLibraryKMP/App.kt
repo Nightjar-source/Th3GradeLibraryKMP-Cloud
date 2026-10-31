@@ -1155,6 +1155,27 @@ fun AppContent(
 
 
 
+        // --- Bottom Banner Ad (Google AdMob Anchored Adaptive Banner) ---
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !showOnboarding && page != "pdf" && bottomBannerAd != null,
+            enter = slideInVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)) { it } + fadeIn(tween(250)),
+            exit = slideOutVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)) { it } + fadeOut(tween(200)),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                .zIndex(180f)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 2.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                bottomBannerAd?.invoke()
+            }
+        }
+
         // --- Mobile Bottom Navigation Capsule (Only visible on small screens and main tabs) ---
         val mainTabs = listOf("home", "list", "news", "bookmarks", "shortcuts", "about")
         androidx.compose.animation.AnimatedVisibility(
@@ -1174,7 +1195,7 @@ fun AppContent(
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                     .offset { androidx.compose.ui.unit.IntOffset(x = 0, y = bottomBarOffsetHeightPx.roundToInt()) }
-                    .padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
+                    .padding(bottom = if (bottomBannerAd != null) 66.dp else 16.dp, start = 16.dp, end = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 val mainNavItems = listOf(
@@ -1908,7 +1929,7 @@ fun AppContent(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .padding(bottom = if (page == "pdf") 96.dp else if (page == "web") 24.dp else if (isWide) 24.dp else 100.dp)
+                .padding(bottom = if (page == "pdf") 96.dp else if (page == "web") 24.dp else if (isWide) 24.dp else (if (bottomBannerAd != null) 154.dp else 100.dp))
                 .zIndex(250f)
         ) {
             lastNonNullToastMessage?.let { msg ->
